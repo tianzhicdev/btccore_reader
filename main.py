@@ -106,7 +106,7 @@ def get_transaction_details(txid, blockhash, block_number):
     except Exception as e:
         db_conn.rollback()
         logger.error(f"Error processing transaction in block {block_number}, tx {txid}: {e}")
-        logger.error(f"Raw transaction: {json.dumps(raw_tx, indent=2, default=str)}")
+        logger.error(f"transaction id: {txid}")
 
 if __name__ == '__main__':
     try:
