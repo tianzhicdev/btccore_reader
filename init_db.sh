@@ -10,7 +10,8 @@ fi
 if [ "$1" == "local" ]; then
     PGDATA=~/postgres_data
 else
-    PGDATA=/Volumes/4tb0
+    PGDATA=/Volumes/4tb0/postgres_data
+
 fi
 
 # Create postgres data directory if it doesn't exist
