@@ -9,6 +9,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+# this is the venv
+btccore_reader/
 develop-eggs/
 dist/
 downloads/
