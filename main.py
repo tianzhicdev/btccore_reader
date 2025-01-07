@@ -59,6 +59,13 @@ def get_vout_address(vout_element):
     else:
         raise Exception(f"unknown vout format {vout_element}") 
 
+def get_raw_tx(txid, blockhash, block_number):
+    try:
+        return rpc_connection.getrawtransaction(txid, True, blockhash)
+    except Exception as e:
+        logger.error(f"Failed to get raw transaction {txid} from block {blockhash}: {e}")
+        raise e
+
 def get_transaction_details(txid, blockhash, block_number):
     records = []
     try:
@@ -90,11 +97,9 @@ def get_transaction_details(txid, blockhash, block_number):
         for r in raw_tx['vout']:
             address = get_vout_address(r)
             amount = r['value']
-            receivers.append((address, amount, block_number))
-            
-            # Insert into database
             records.append( (timestamp, address, amount, txid) )
         return records
+    
     except Exception as e:
         logger.error(f"Error processing transaction in block {block_number}, tx {txid}: {e}")
         logger.error(f"transaction id: {txid}")
@@ -108,17 +113,26 @@ if __name__ == '__main__':
                 block_hash = rpc_connection.getblockhash(block_num)
                 block = rpc_connection.getblock(block_hash)
 
-                print(f"\nProcessing block {block_num}")
+                logger.info(f"Processing block {block_num}")
                 
                 # Process all transactions in the block
                 if block['tx']:
                     for tx in block['tx']:
-                        get_transaction_details(tx, block_hash, block_num)
-                        # todo: if success, write to transactions table, if not write to unprocessed_transactrions
-                
+                        try:
+                            records = get_transaction_details(tx, block_hash, block_num)
+                            # Insert records into transactions table
+                            for record in records:
+                                db_cursor.execute("INSERT INTO transactions (timestamp, address, amount, tx) VALUES (%s, %s, %s, %s) ON CONFLICT (timestamp, address, amount, tx) DO NOTHING;", record)
+                            db_conn.commit()
+                        except Exception as e:
+                            logger.error(f"Failed to process transaction {tx} in block {block_num}: {e}")
+                            
+                            raw_tx = get_raw_tx(tx, block_hash, block_num)
+                            db_cursor.execute("INSERT INTO unprocessed_transactions (tx, raw_tx, blocktime, blockhash, block_number) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (tx) DO NOTHING;", (tx, json.dumps(raw_tx), datetime.fromtimestamp(raw_tx['blocktime']), block_hash, block_num))
+                            db_conn.commit()
                 block_num += 1
                 
-            except JSONRPCException as e:
+            except Exception as e:
                 if "Block height out of range" in str(e):
                     print(f"Reached the end of the blockchain at block {block_num}")
                     break

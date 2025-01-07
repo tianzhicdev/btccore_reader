@@ -62,7 +62,9 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE TABLE IF NOT EXISTS unprocessed_transactrions (
     tx VARCHAR(100) UNIQUE,
     raw_tx json,
-    blocktime DATE
+    blocktime DATE,
+    blockhash VARCHAR(100),
+    block_number INTEGER
 );
 \echo '\n'
 
