@@ -58,6 +58,12 @@ CREATE TABLE IF NOT EXISTS transactions (
     tx VARCHAR(100),
     UNIQUE(timestamp, address, amount, tx)
 );
+
+CREATE TABLE IF NOT EXISTS unprocessed_transactrions (
+    tx VARCHAR(100) UNIQUE,
+    raw_tx json,
+    blocktime DATE
+);
 \echo '\n'
 
 \echo 'Inserting test record...'

@@ -46,17 +46,30 @@ def get_vout_address(vout_element):
         return public_key_to_address(vout_element['scriptPubKey']['asm'].split(' ')[0])
     elif vout_element['scriptPubKey']['type'] == "pubkeyhash":
         return vout_element['scriptPubKey']['address']
+    elif vout_element['scriptPubKey']['type'] == "scripthash":
+        return vout_element['scriptPubKey']['address']
+    elif vout_element['scriptPubKey']['type'] == "witness_v0_keyhash":
+        return vout_element['scriptPubKey']['address']
+    elif vout_element['scriptPubKey']['type'] == "witness_v0_scripthash":
+        return vout_element['scriptPubKey']['address']
+    elif vout_element['scriptPubKey']['type'] == "witness_v1_taproot":
+        return vout_element['scriptPubKey']['address']
+    # elif vout_element['scriptPubKey']['type'] == "multisig":
+    #     return vout_element['scriptPubKey']['addresses'][0] if 'addresses' in vout_element['scriptPubKey'] else None
     else:
         raise Exception(f"unknown vout format {vout_element}") 
 
 def get_transaction_details(txid, blockhash, block_number):
+    records = []
     try:
         raw_tx = rpc_connection.getrawtransaction(txid, True, blockhash)
-        # with open('transactions.txt', 'a') as f:
-        #     f.write(f'{blockhash} {str(block_number)} sender: \n' + json.dumps(raw_tx, indent=4, default=str) + '\n')
-
         blocktime = raw_tx['blocktime']
         timestamp = datetime.fromtimestamp(blocktime)
+    except Exception as e:
+        logger.error(f"Failed to get raw transaction {txid} from block {blockhash}: {e}")
+        raise e
+    
+    try:
         
         senders = []
         for s in raw_tx['vin']:
@@ -67,20 +80,9 @@ def get_transaction_details(txid, blockhash, block_number):
                 prev_tx = rpc_connection.getrawtransaction(s['txid'], True)
                 prev_n = s['vout']
                 prev_out = prev_tx["vout"][prev_n]
-                prev_address = get_vout_address(prev_out)
+                prev_address = get_vout_address(prev_out) # this could fail
                 prev_amount = prev_out['value']
-                # Insert sender transaction into database
-                try:
-                    db_cursor.execute(
-                        "INSERT INTO transactions (timestamp, address, amount, tx) VALUES (%s, %s, %s, %s) ON CONFLICT (timestamp, address, amount, tx) DO NOTHING",
-                        (timestamp, prev_address, -prev_amount, txid)
-                    )
-                except Exception as e:
-                    logger.error(f"Error inserting sender transaction into database for block {block_number}, tx {txid}: {e}")
-                    logger.error(f"Raw transaction: {json.dumps(raw_tx, indent=2, default=str)}")
-                    raise
-
-                senders.append(get_vout_address(prev_out))
+                records.append((timestamp, prev_address, -prev_amount, txid))
             else:
                 raise Exception(f"unknown vin format {s}") 
             
@@ -91,22 +93,12 @@ def get_transaction_details(txid, blockhash, block_number):
             receivers.append((address, amount, block_number))
             
             # Insert into database
-            try:
-                db_cursor.execute(
-                    "INSERT INTO transactions (timestamp, address, amount, tx) VALUES (%s, %s, %s, %s) ON CONFLICT (timestamp, address, amount, tx) DO NOTHING",
-                    (timestamp, address, amount, txid)
-                )
-            except Exception as e:
-                logger.error(f"Error inserting receiver transaction into database for block {block_number}, tx {txid}: {e}")
-                logger.error(f"Raw transaction: {json.dumps(raw_tx, indent=2, default=str)}")
-                raise 
-        db_conn.commit()
-        return senders, receivers
-                
+            records.append( (timestamp, address, amount, txid) )
+        return records
     except Exception as e:
-        db_conn.rollback()
         logger.error(f"Error processing transaction in block {block_number}, tx {txid}: {e}")
         logger.error(f"transaction id: {txid}")
+        raise e
 
 if __name__ == '__main__':
     try:
@@ -122,6 +114,7 @@ if __name__ == '__main__':
                 if block['tx']:
                     for tx in block['tx']:
                         get_transaction_details(tx, block_hash, block_num)
+                        # todo: if success, write to transactions table, if not write to unprocessed_transactrions
                 
                 block_num += 1
                 
