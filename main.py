@@ -128,7 +128,7 @@ if __name__ == '__main__':
                             logger.error(f"Failed to process transaction {tx} in block {block_num}: {e}")
                             
                             raw_tx = get_raw_tx(tx, block_hash, block_num)
-                            db_cursor.execute("INSERT INTO unprocessed_transactions (tx, raw_tx, blocktime, blockhash, block_number) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (tx) DO NOTHING;", (tx, json.dumps(raw_tx), datetime.fromtimestamp(raw_tx['blocktime']), block_hash, block_num))
+                            db_cursor.execute("INSERT INTO unprocessed_transactions (tx, raw_tx, blocktime, blockhash, block_number) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (tx) DO NOTHING;", (tx, json.dumps(raw_tx, default=str), datetime.fromtimestamp(raw_tx['blocktime']), block_hash, block_num))
                             db_conn.commit()
                 block_num += 1
                 
