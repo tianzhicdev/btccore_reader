@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     UNIQUE(timestamp, address, amount, tx)
 );
 
-CREATE TABLE IF NOT EXISTS unprocessed_transactrions (
+CREATE TABLE IF NOT EXISTS unprocessed_transactions (
     tx VARCHAR(100) UNIQUE,
     raw_tx json,
     blocktime DATE,
