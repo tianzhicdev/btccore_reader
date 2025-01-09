@@ -1,18 +1,21 @@
 #!/bin/bash
 
+# Define the project directory
+PROJECT_DIR="/Users/tianzhichen/projects/btccore_reader"
+
 # Create virtual environment if it doesn't exist
-if [ ! -d "btccore_reader" ]; then
-    python3 -m venv btccore_reader
+if [ ! -d "$PROJECT_DIR/btccore_reader" ]; then
+    python3 -m venv "$PROJECT_DIR/btccore_reader"
 fi
 
 # Activate virtual environment
-source btccore_reader/bin/activate
+source "$PROJECT_DIR/btccore_reader/bin/activate"
 
 # Install requirements
-pip install -r requirements.txt
+pip install -r "$PROJECT_DIR/requirements.txt"
 
 # Run main script
-python main.py
+python "$PROJECT_DIR/main.py"
 
 # Deactivate virtual environment
 deactivate
