@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     address VARCHAR(100),
     amount DOUBLE PRECISION,
     tx VARCHAR(100),
-    UNIQUE(timestamp, address, amount, tx)
+    block_number INTEGER
+    UNIQUE(timestamp, address, amount, tx, block_number)
 );
 
 CREATE TABLE IF NOT EXISTS unprocessed_transactions (

@@ -1,3 +1,6 @@
+# todo: we need to calc the number of holders that can tolerate 20% downturn - they are believers. - the only metric that matters 
+# holding longer than 1 year and experienced 20% downturn
+
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 import os
 import time
@@ -89,7 +92,7 @@ def get_transaction_details(txid, blockhash, block_number):
                 prev_out = prev_tx["vout"][prev_n]
                 prev_address = get_vout_address(prev_out) # this could fail
                 prev_amount = prev_out['value']
-                records.append((timestamp, prev_address, -prev_amount, txid))
+                records.append((timestamp, prev_address, -prev_amount, txid, block_number))
             else:
                 raise Exception(f"unknown vin format {s}") 
             
@@ -97,7 +100,7 @@ def get_transaction_details(txid, blockhash, block_number):
         for r in raw_tx['vout']:
             address = get_vout_address(r)
             amount = r['value']
-            records.append( (timestamp, address, amount, txid) )
+            records.append( (timestamp, address, amount, txid, block_number) )
         return records
     
     except Exception as e:
@@ -122,7 +125,7 @@ if __name__ == '__main__':
                             records = get_transaction_details(tx, block_hash, block_num)
                             # Insert records into transactions table
                             for record in records:
-                                db_cursor.execute("INSERT INTO transactions (timestamp, address, amount, tx) VALUES (%s, %s, %s, %s) ON CONFLICT (timestamp, address, amount, tx) DO NOTHING;", record)
+                                db_cursor.execute("INSERT INTO transactions (timestamp, address, amount, tx, block_number) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (timestamp, address, amount, tx, block_number) DO NOTHING;", record)
                             db_conn.commit()
                         except Exception as e:
                             logger.error(f"Failed to process transaction {tx} in block {block_num}: {e}")
