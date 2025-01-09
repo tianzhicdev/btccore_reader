@@ -110,7 +110,10 @@ def get_transaction_details(txid, blockhash, block_number):
 
 if __name__ == '__main__':
     try:
-        block_num = 1
+        db_cursor.execute("SELECT COALESCE(MAX(block_number), 0) FROM transactions")
+        max_block_num = db_cursor.fetchone()[0]
+        logger.info(f"Starting from block number: {max_block_num}")
+        block_num = max(1, max_block_num - 1)
         while True:
             try:
                 block_hash = rpc_connection.getblockhash(block_num)
