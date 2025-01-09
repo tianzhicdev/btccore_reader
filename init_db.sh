@@ -70,9 +70,9 @@ CREATE TABLE IF NOT EXISTS unprocessed_transactions (
 \echo '\n'
 
 \echo 'Inserting test record...'
-INSERT INTO transactions (timestamp, address, amount, tx) 
-VALUES ('2023-01-01', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 50.0, 'test_tx_123')
-ON CONFLICT (timestamp, address, amount, tx) DO NOTHING;
+INSERT INTO transactions (timestamp, address, amount, tx, block_number) 
+VALUES ('2023-01-01', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 50.0, 'test_tx_123', 0)
+ON CONFLICT (timestamp, address, amount, tx, block_number) DO NOTHING;
 \echo '\n'
 
 \echo 'Fetching test record:'
