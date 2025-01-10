@@ -26,20 +26,20 @@ cursor = conn.cursor()
 
 # Get the maximum date from the transactions table
 cursor.execute("SELECT MAX(timestamp) FROM transactions;")
-MAX_DATE = cursor.fetchone()[0]
-MAX_DATE = datetime(
-    year=MAX_DATE.year, 
-    month=MAX_DATE.month,
-    day=MAX_DATE.day,
+latest_transaction_date = cursor.fetchone()[0]
+latest_transaction_date = datetime(
+    year=latest_transaction_date.year, 
+    month=latest_transaction_date.month,
+    day=latest_transaction_date.day,
 )
-logger.info(f"Max date from transactions: {MAX_DATE.strftime('%Y-%m-%d')}")
+logger.info(f"Max date from transactions: {latest_transaction_date.strftime('%Y-%m-%d')}")
 
 # Define the start date for iteration
 cursor.execute("SELECT MAX(date) FROM hodls;")
-current_max_date = cursor.fetchone()[0]
-logger.info(f"Current max date from hodls: {current_max_date}")
-if current_max_date:
-    start_date = datetime(year=current_max_date.year, month=current_max_date.month, day=current_max_date.day)
+latest_timeseries_date = cursor.fetchone()[0]
+logger.info(f"Current max date from hodls: {latest_timeseries_date}")
+if latest_timeseries_date:
+    start_date = min(datetime(year=latest_timeseries_date.year, month=latest_timeseries_date.month, day=latest_timeseries_date.day), latest_transaction_date)
 else:
     start_date = datetime(2010, 1, 8)
 logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
@@ -47,7 +47,7 @@ logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
 # Iterate over each week from the start date to the current date
 current_date = start_date
 while current_date <= datetime.now():
-    if current_date < (MAX_DATE - timedelta(days=1)):
+    if current_date < (latest_transaction_date - timedelta(days=1)):
         # Data is up to date for the current week
         query = """
         SELECT COUNT(DISTINCT address) FROM (
