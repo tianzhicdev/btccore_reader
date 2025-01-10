@@ -16,7 +16,11 @@ cursor = conn.cursor()
 # Get the maximum date from the transactions table
 cursor.execute("SELECT MAX(timestamp) FROM transactions;")
 MAX_DATE = cursor.fetchone()[0]
-MAX_DATE = datetime.strptime(MAX_DATE, '%Y-%m-%d %H:%M:%S')
+MAX_DATE = datetime(
+    year=MAX_DATE.year, 
+    month=MAX_DATE.month,
+    day=MAX_DATE.day,
+)
 
 
 # Define the start date for iteration
