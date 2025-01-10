@@ -36,9 +36,10 @@ logger.info(f"Max date from transactions: {MAX_DATE.strftime('%Y-%m-%d')}")
 
 # Define the start date for iteration
 cursor.execute("SELECT MAX(date) FROM hodls;")
-min_date = cursor.fetchone()[0]
-if min_date:
-    start_date = datetime(year=min_date.year, month=min_date.month, day=min_date.day)
+current_max_date = cursor.fetchone()[0]
+logger.info(f"Current max date from hodls: {current_max_date}")
+if current_max_date:
+    start_date = datetime(year=current_max_date.year, month=current_max_date.month, day=current_max_date.day)
 else:
     start_date = datetime(2010, 1, 8)
 logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
