@@ -16,7 +16,7 @@ fi
 
 # Create virtual environment if it doesn't exist
 if [ ! -d "$PROJECT_DIR/btccore_reader" ]; then
-    python3 -m venv "$PROJECT_DIR/btccore_reader"
+    /opt/homebrew/bin/python3.9 -m venv "$PROJECT_DIR/btccore_reader"
 fi
 
 # Activate virtual environment

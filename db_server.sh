@@ -2,6 +2,8 @@
 
 # Check if the environment parameter is provided and valid
 # $1: The environment parameter, which should be either "server" or "local".
+brew install python@3.9
+
 if [ "$1" != "server" ] && [ "$1" != "local" ]; then
     echo "Usage: $0 [server|local]"
     exit 1
@@ -26,7 +28,7 @@ source "$PROJECT_DIR/btccore_reader/bin/activate"
 pip install -r "$PROJECT_DIR/requirements.txt"
 
 # Run main script
-python "$PROJECT_DIR/timeseries.py"
+python "$PROJECT_DIR/db_server.py"
 
 # Deactivate virtual environment
 deactivate
