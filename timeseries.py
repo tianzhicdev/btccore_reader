@@ -43,6 +43,19 @@ while current_date <= datetime.now():
         cursor.execute(query, (current_date, BALANCE, current_date - timedelta(days=DURATION)))
         hodler_count = cursor.fetchone()[0]
         print(f"Number of hodlers for week starting {current_date.strftime('%Y-%m-%d')}: {hodler_count}")
+    # Fetch and print some addresses from the HODLER_ADDRESS subquery
+    address_query = """
+    SELECT address FROM (
+        SELECT address
+        FROM transactions 
+        WHERE timestamp < %s
+        GROUP BY address
+        HAVING SUM(amount) > %s AND MIN(timestamp) < %s
+    ) AS HODLER_ADDRESS LIMIT 5;
+    """
+    cursor.execute(address_query, (current_date, BALANCE, current_date - timedelta(days=DURATION)))
+    addresses = cursor.fetchall()
+    print(f"Sample addresses for week starting {current_date.strftime('%Y-%m-%d')}: {[address[0] for address in addresses]}")
     
     # Move to the next week
     current_date += timedelta(weeks=1)
