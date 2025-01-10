@@ -1,6 +1,17 @@
 import psycopg2
 from datetime import datetime, timedelta
 
+import logging
+from logging.handlers import RotatingFileHandler
+# Set up logging
+log_file = '/tmp/bitcoin_hodls.log'
+logger = logging.getLogger('hodls')
+logger.setLevel(logging.INFO)
+handler = RotatingFileHandler(log_file, maxBytes=1024*1024*1024, backupCount=1) # 1GB max
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 DURATION = 365
 BALANCE = 1
 
@@ -21,10 +32,16 @@ MAX_DATE = datetime(
     month=MAX_DATE.month,
     day=MAX_DATE.day,
 )
-
+logger.info(f"Max date from transactions: {MAX_DATE.strftime('%Y-%m-%d')}")
 
 # Define the start date for iteration
-start_date = datetime(2010, 1, 8)
+cursor.execute("SELECT MIN(date) FROM hodls;")
+min_date = cursor.fetchone()[0]
+if min_date:
+    start_date = datetime(year=min_date.year, month=min_date.month, day=min_date.day)
+else:
+    start_date = datetime(2010, 1, 8)
+logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
 
 # Iterate over each week from the start date to the current date
 current_date = start_date
@@ -42,7 +59,7 @@ while current_date <= datetime.now():
         """
         cursor.execute(query, (current_date, BALANCE, current_date - timedelta(days=DURATION)))
         hodler_count = cursor.fetchone()[0]
-        print(f"Number of hodlers for week starting {current_date.strftime('%Y-%m-%d')}: {hodler_count}")
+        logger.info(f"Number of hodlers for week starting {current_date.strftime('%Y-%m-%d')}: {hodler_count}")
     # Insert the hodler count into the hodls table
         insert_query = """
         INSERT INTO hodls (date, hodls) VALUES (%s, %s)
