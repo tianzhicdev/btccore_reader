@@ -13,7 +13,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 # Set up logging
-log_file = '/tmp/bitcoin_tx_errors.log'
+log_file = '/tmp/bitcoin_reader.log'
 logger = logging.getLogger('bitcoin_tx')
 logger.setLevel(logging.INFO)
 handler = RotatingFileHandler(log_file, maxBytes=1024*1024*1024, backupCount=1) # 1GB max
