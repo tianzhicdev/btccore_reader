@@ -35,7 +35,7 @@ MAX_DATE = datetime(
 logger.info(f"Max date from transactions: {MAX_DATE.strftime('%Y-%m-%d')}")
 
 # Define the start date for iteration
-cursor.execute("SELECT MIN(date) FROM hodls;")
+cursor.execute("SELECT MAX(date) FROM hodls;")
 min_date = cursor.fetchone()[0]
 if min_date:
     start_date = datetime(year=min_date.year, month=min_date.month, day=min_date.day)
