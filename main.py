@@ -118,24 +118,30 @@ if __name__ == '__main__':
             try:
                 block_hash = rpc_connection.getblockhash(block_num)
                 block = rpc_connection.getblock(block_hash)
-
-                logger.info(f"Processing block {block_num}")
+                block_time = datetime.fromtimestamp(block['time'])
+                logger.info(f"Processing block {block_num} at time {block_time}")
                 
                 # Process all transactions in the block
+                records_to_add = []
                 if block['tx']:
                     for tx in block['tx']:
                         try:
                             records = get_transaction_details(tx, block_hash, block_num)
-                            # Insert records into transactions table
-                            for record in records:
-                                db_cursor.execute("INSERT INTO transactions (timestamp, address, amount, tx, block_number) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (timestamp, address, amount, tx, block_number) DO NOTHING;", record)
-                            db_conn.commit()
+                            records_to_add.extend(records)
                         except Exception as e:
                             logger.error(f"Failed to process transaction {tx} in block {block_num}: {e}")
                             
                             raw_tx = get_raw_tx(tx, block_hash, block_num)
                             db_cursor.execute("INSERT INTO unprocessed_transactions (tx, raw_tx, blocktime, blockhash, block_number) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (tx) DO NOTHING;", (tx, json.dumps(raw_tx, default=str), datetime.fromtimestamp(raw_tx['blocktime']), block_hash, block_num))
                             db_conn.commit()
+
+                    db_cursor.executemany("INSERT INTO transactions (timestamp, address, amount, tx, block_number) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (timestamp, address, amount, tx, block_number) DO NOTHING;", records_to_add)
+                    db_conn.commit()
+                    if records_to_add:
+                        logger.info(f"Successfully prepared {len(records_to_add)} records for insertion into transactions table.")
+                    else:
+                        logger.info("No records to insert into transactions table.")
+
                 block_num += 1
                 
             except Exception as e:
