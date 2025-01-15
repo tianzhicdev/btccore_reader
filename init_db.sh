@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     amount DOUBLE PRECISION,
     tx VARCHAR(100),
     block_number INTEGER,
+    created_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(timestamp, address, amount, tx, block_number)
 );
 

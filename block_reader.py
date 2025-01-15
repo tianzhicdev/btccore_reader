@@ -147,15 +147,4 @@ def process_block(block_num):
             return False  # Indicate failure
 
 if __name__ == '__main__':
-    try:
-        db_cursor.execute("SELECT COALESCE(MAX(block_number), 0) FROM transactions")
-        max_block_num = db_cursor.fetchone()[0]
-        logger.info(f"Starting from block number: {max_block_num}")
-        block_num = max(1, max_block_num - 1)
-        while True:
-            if not process_block(block_num):
-                break
-            block_num += 1
-
-    except JSONRPCException as e:
-        logger.error(f"Fatal RPC error: {e}")
+    process_block(336197)
