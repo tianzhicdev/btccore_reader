@@ -58,13 +58,15 @@ CREATE TABLE IF NOT EXISTS transactions (
     tx VARCHAR(100),
     block_number INTEGER,
     created_at TIMESTAMP DEFAULT NOW(),
+    version INTEGER DEFAULT 1, 
     UNIQUE(timestamp, address, amount, tx, block_number)
 );
 
 \echo 'Creating hodls table if it does not exist...'
 CREATE TABLE IF NOT EXISTS hodls (
     date DATE PRIMARY KEY,
-    hodls INTEGER
+    hodls INTEGER,
+    version INTEGER DEFAULT 1  
 );
 
 CREATE TABLE IF NOT EXISTS unprocessed_transactions (
@@ -72,7 +74,8 @@ CREATE TABLE IF NOT EXISTS unprocessed_transactions (
     raw_tx json,
     blocktime DATE,
     blockhash VARCHAR(100),
-    block_number INTEGER
+    block_number INTEGER,
+    version INTEGER DEFAULT 1 
 );
 \echo '\n'
 

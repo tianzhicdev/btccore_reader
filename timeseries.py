@@ -1,8 +1,9 @@
 import psycopg2
 from datetime import datetime, timedelta
-
 import logging
 from logging.handlers import RotatingFileHandler
+import sys
+
 # Set up logging
 log_file = '/tmp/bitcoin_hodls.log'
 logger = logging.getLogger('hodls')
@@ -16,62 +17,97 @@ DURATION = 365
 BALANCE = 1
 
 # Establish a database connection
-conn = psycopg2.connect(
-    dbname="bitcoin",
-    user="abc",
-    password="12345",
-    host="localhost"
-)
-cursor = conn.cursor()
+try:
+    conn = psycopg2.connect(
+        dbname="bitcoin",
+        user="abc",
+        password="12345",
+        host="localhost"
+    )
+    cursor = conn.cursor()
+except psycopg2.Error as e:
+    logger.error(f"Error connecting to the database: {e}")
+    sys.exit(1)
 
-# Get the maximum date from the transactions table
-cursor.execute("SELECT MAX(timestamp) FROM transactions;")
-latest_transaction_date = cursor.fetchone()[0]
-latest_transaction_date = datetime(
-    year=latest_transaction_date.year, 
-    month=latest_transaction_date.month,
-    day=latest_transaction_date.day,
-)
-logger.info(f"Max date from transactions: {latest_transaction_date.strftime('%Y-%m-%d')}")
+def latest_transaction_date():
+    try:
+        cursor.execute("SELECT MAX(timestamp) FROM transactions;")
+        latest_transaction_date = cursor.fetchone()[0]
+        if latest_transaction_date is None:
+            raise ValueError("No transactions found.")
+        latest_transaction_date = datetime(
+            year=latest_transaction_date.year, 
+            month=latest_transaction_date.month,
+            day=latest_transaction_date.day,
+        )
+        logger.info(f"Max date from transactions: {latest_transaction_date.strftime('%Y-%m-%d')}")
+        return latest_transaction_date
+    except Exception as e:
+        logger.error(f"Error fetching latest transaction date: {e}")
+        sys.exit(1)
 
-# Define the start date for iteration
-cursor.execute("SELECT MAX(date) FROM hodls;")
-latest_timeseries_date = cursor.fetchone()[0]
-logger.info(f"Current max date from hodls: {latest_timeseries_date}")
-if latest_timeseries_date:
-    start_date = min(datetime(year=latest_timeseries_date.year, month=latest_timeseries_date.month, day=latest_timeseries_date.day), latest_transaction_date)
+def latest_timeseries_date(table_name):
+    try:
+        cursor.execute(f"SELECT MAX(date) FROM {table_name};")
+        latest_date = cursor.fetchone()[0]
+        if latest_date is None:
+            return None
+        latest_date = datetime(
+            year=latest_date.year, 
+            month=latest_date.month,
+            day=latest_date.day,
+        )
+        return latest_date
+    except Exception as e:
+        logger.error(f"Error fetching latest timeseries date for {table_name}: {e}")
+        sys.exit(1)
+
+# Check if version parameter is provided
+if len(sys.argv) > 1:
+    try:
+        version = int(sys.argv[1])
+    except ValueError:
+        logger.error("Invalid version parameter. Must be an integer.")
+        sys.exit(1)
+else:
+    version = 1
+
+logger.info(f"Running script with version: {version}")
+
+latest_hodl_date = latest_timeseries_date("hodls")
+
+logger.info(f"Current max date from hodls: {latest_hodl_date}")
+if latest_hodl_date:
+    start_date = min(latest_hodl_date, latest_transaction_date())
 else:
     start_date = datetime(2010, 1, 8)
 logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
 
 # Iterate over each week from the start date to the current date
-current_date = start_date
-while current_date <= datetime.now():
-    if current_date < (latest_transaction_date - timedelta(days=1)):
-        # Data is up to date for the current week
-        query = """
-        SELECT COUNT(DISTINCT address) FROM (
-            SELECT address
-            FROM transactions 
-            WHERE timestamp < %s
-            GROUP BY address
-            HAVING SUM(amount) > %s AND MIN(timestamp) < %s
-        ) AS HODLER_ADDRESS;
-        """
-        cursor.execute(query, (current_date, BALANCE, current_date - timedelta(days=DURATION)))
-        hodler_count = cursor.fetchone()[0]
-        logger.info(f"Number of hodlers for week starting {current_date.strftime('%Y-%m-%d')}: {hodler_count}")
-    # Insert the hodler count into the hodls table
-        insert_query = """
-        INSERT INTO hodls (date, hodls) VALUES (%s, %s)
-        ON CONFLICT (date) DO UPDATE SET hodls = EXCLUDED.hodls;
-        """
-        cursor.execute(insert_query, (current_date, hodler_count))
-        conn.commit()
-    # Fetch and print some addresses from the HODLER_ADDRESS subquery
+while start_date <= datetime.now():
+    try:
+        if start_date < (latest_transaction_date() - timedelta(days=1)):
+            query = """
+            WITH hodler_count AS (
+                SELECT COUNT(DISTINCT address) AS count FROM (
+                    SELECT address
+                    FROM transactions 
+                    WHERE timestamp < %s
+                    GROUP BY address
+                    HAVING SUM(amount) > %s AND MIN(timestamp) < %s
+                ) AS HODLER_ADDRESS
+            )
+            INSERT INTO hodls (date, hodls, version)
+            VALUES (%s, (SELECT count FROM hodler_count), %s)
+            ON CONFLICT (date) DO UPDATE SET hodls = EXCLUDED.hodls;
+            """
+            cursor.execute(query, (start_date, BALANCE, start_date - timedelta(days=DURATION), start_date, version))
+            conn.commit()
+    except Exception as e:
+        logger.error(f"Error during iteration for date {start_date.strftime('%Y-%m-%d')}: {e}")
+        conn.rollback()
 
-    # Move to the next week
-    current_date += timedelta(weeks=1)
+    start_date += timedelta(weeks=1)
 
 # Close the database connection
 cursor.close()
