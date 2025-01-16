@@ -1,10 +1,20 @@
 #!/bin/bash
 
-# Check if the environment parameter is provided and valid
+# Check if the environment and version parameters are provided and valid
 # $1: The environment parameter, which should be either "server" or "local".
+# $2: The version parameter, which should be a positive integer.
 if [ "$1" != "server" ] && [ "$1" != "local" ]; then
-    echo "Usage: $0 [server|local]"
+    echo "Usage: $0 [server|local] [version]"
     exit 1
+fi
+
+if [ -z "$2" ]; then
+    version=1
+elif ! [[ "$2" =~ ^[0-9]+$ ]]; then
+    echo "Error: Version must be a positive integer."
+    exit 1
+else
+    version="$2"
 fi
 
 # Define the project directory based on the environment parameter
@@ -15,18 +25,18 @@ else
 fi
 
 # Create virtual environment if it doesn't exist
-if [ ! -d "$PROJECT_DIR/btccore_reader" ]; then
-    /opt/homebrew/bin/python3.9 -m venv "$PROJECT_DIR/btccore_reader"
+if [ ! -d "$PROJECT_DIR/venv" ]; then
+    /opt/homebrew/bin/python3.9 -m venv "$PROJECT_DIR/venv"
 fi
 
 # Activate virtual environment
-source "$PROJECT_DIR/btccore_reader/bin/activate"
+source "$PROJECT_DIR/venv/bin/activate"
 
 # Install requirements
 pip install -r "$PROJECT_DIR/requirements.txt"
 
 # Run main script
-python "$PROJECT_DIR/timeseries.py"
+python "$PROJECT_DIR/timeseries.py" "$version"
 
 # Deactivate virtual environment
 deactivate
