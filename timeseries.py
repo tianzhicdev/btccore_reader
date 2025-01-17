@@ -53,6 +53,7 @@ def latest_timeseries_date(hodls_table_name):
         cursor.execute(query)
         latest_date = cursor.fetchone()[0]
         if latest_date is None:
+            logger.info(f"No previous timeseries data found in table {hodls_table_name}, starting fresh.")
             return None
         latest_date = datetime(
             year=latest_date.year, 
@@ -112,7 +113,7 @@ logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
 # Iterate over each week from the start date to the current date
 while start_date <= datetime.now():
     try:
-        if start_date < (latest_transaction_date(transactions_table_name) - timedelta(days=1)):
+        if start_date < (current_latest_transaction_date - timedelta(days=1)):
             query = f"""
             WITH hodler_count AS (
                 SELECT COUNT(DISTINCT address) AS count FROM (
@@ -128,6 +129,7 @@ while start_date <= datetime.now():
             ON CONFLICT (date) DO UPDATE SET hodls = EXCLUDED.hodls;
             """
             cursor.execute(query, (start_date, BALANCE, start_date - timedelta(days=DURATION), start_date))
+            logger.info(f"Inserted hodler count for date {start_date.strftime('%Y-%m-%d')} into table {hodls_table_name}. Number of records: 1")
             conn.commit()
     except Exception as e:
         logger.error(f"Error during iteration for date {start_date.strftime('%Y-%m-%d')}: {e}")
