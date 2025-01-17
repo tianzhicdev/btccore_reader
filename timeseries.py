@@ -48,7 +48,8 @@ def latest_transaction_date(version):
 
 def latest_timeseries_date(table_name, version):
     try:
-        cursor.execute("SELECT MAX(date) FROM %s WHERE version = %s;", (table_name, version))
+        query = f"SELECT MAX(date) FROM {table_name} WHERE version = %s;"
+        cursor.execute(query, (version,))
         latest_date = cursor.fetchone()[0]
         if latest_date is None:
             return None
