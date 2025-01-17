@@ -3,8 +3,6 @@
 
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 import os
-import time
-import random
 import json
 import psycopg2
 from datetime import datetime
