@@ -34,7 +34,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Create user and database if they don't exist
-psql postgres << EOF
+psql -p 3004 postgres << EOF
 DO \$\$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'abc') THEN
@@ -48,7 +48,7 @@ GRANT ALL PRIVILEGES ON DATABASE bitcoin TO abc;
 EOF
 
 # Create table and indexes if they don't exist
-psql -U abc bitcoin -e << EOF
+psql -p 3004 -U abc bitcoin -e << EOF
 \set QUIET off
 \echo 'Creating transactions table if it does not exist...'
 CREATE TABLE IF NOT EXISTS transactions (

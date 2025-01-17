@@ -26,7 +26,7 @@ bitcoin_datadir = os.path.expanduser("~/Library/Application Support/Bitcoin/")
 
 # RPC connection details
 rpc_host = "127.0.0.1"
-rpc_port = 8332  # Use 18332 for testnet
+rpc_port = 3003  # Use 18332 for testnet
 
 # Create an RPC connection using cookie authentication
 cookie_file = os.path.join(bitcoin_datadir, ".cookie")

@@ -15,7 +15,8 @@ try:
         dbname="bitcoin",
         user="abc",
         password="12345",
-        host="192.168.0.49"
+        host="192.168.0.49",
+        port="3004"
     )
     cursor = conn.cursor()
     cursor.execute("SELECT 1;")

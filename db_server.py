@@ -1,9 +1,7 @@
-# from urllib import request
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor
-# import requests
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
@@ -12,7 +10,8 @@ def get_db_connection():
         dbname="bitcoin",
         user="abc",
         password="12345",
-        host="localhost"
+        host="localhost",
+        prot="3004"
     )
     return conn
 

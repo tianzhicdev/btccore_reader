@@ -22,7 +22,8 @@ try:
         dbname="bitcoin",
         user="abc",
         password="12345",
-        host="localhost"
+        host="localhost",
+        port="3004"
     )
     cursor = conn.cursor()
 except psycopg2.Error as e:
