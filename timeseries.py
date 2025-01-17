@@ -105,15 +105,18 @@ if not current_latest_transaction_date:
     
 
 if latest_hodl_date:
-    start_date = min(latest_hodl_date, current_latest_transaction_date)
+    period_end_date = min(latest_hodl_date, current_latest_transaction_date)
 else:
-    start_date = datetime(2010, 1, 8)
-logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
+    period_end_date = datetime(2010, 1, 8)
+
+period_end_date = period_end_date + timedelta(days=7)
+
+logger.info(f"Start date for iteration: {period_end_date.strftime('%Y-%m-%d')}")
 
 # Iterate over each week from the start date to the current date
-while start_date <= datetime.now():
+while period_end_date <= datetime.now():
     try:
-        if start_date < (current_latest_transaction_date - timedelta(days=1)):
+        if period_end_date < (current_latest_transaction_date - timedelta(days=1)):
             query = f"""
             WITH hodler_count AS (
                 SELECT COUNT(DISTINCT address) AS count FROM (
@@ -128,14 +131,14 @@ while start_date <= datetime.now():
             VALUES (%s, (SELECT count FROM hodler_count))
             ON CONFLICT (date) DO UPDATE SET hodls = EXCLUDED.hodls;
             """
-            cursor.execute(query, (start_date, BALANCE, start_date - timedelta(days=DURATION), start_date))
-            logger.info(f"Inserted hodler count for date {start_date.strftime('%Y-%m-%d')} into table {hodls_table_name}. Number of records: 1")
+            cursor.execute(query, (period_end_date, BALANCE, period_end_date - timedelta(days=DURATION), period_end_date))
+            logger.info(f"Inserted hodler count for date {period_end_date.strftime('%Y-%m-%d')} into table {hodls_table_name}. Number of records: 1")
             conn.commit()
     except Exception as e:
-        logger.error(f"Error during iteration for date {start_date.strftime('%Y-%m-%d')}: {e}")
+        logger.error(f"Error during iteration for date {period_end_date.strftime('%Y-%m-%d')}: {e}")
         conn.rollback()
 
-    start_date += timedelta(weeks=1)
+    period_end_date += timedelta(weeks=1)
 
 # Close the database connection
 cursor.close()
