@@ -1,4 +1,8 @@
 import hashlib
+import logging
+from logging.handlers import RotatingFileHandler
+from bitcoinrpc.authproxy import AuthServiceProxy
+import psycopg2
 
 def base58_encode(data):
     alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -36,3 +40,28 @@ def public_key_to_address(public_key_hex):
 
     # Step 7: Convert to Base58
     return base58_encode(binary_address)
+
+# Database connection
+def create_db_connection():
+    return psycopg2.connect(
+        dbname="bitcoin",
+        user="abc",
+        password="12345",
+        host="marcus-mini.is-very-nice.org",
+        port="3004"
+    )
+
+def get_rpc_connection_user_pw():
+    rpc_host = "marcus-mini.is-very-nice.org"
+    rpc_port = 3003 
+    return AuthServiceProxy(f"http://bitcoinrpc:12345@{rpc_host}:{rpc_port}")
+
+def get_logger(name):
+    log_file = f'/tmp/{name}.log'
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    handler = RotatingFileHandler(log_file, maxBytes=1024*1024*1024, backupCount=1) # 1GB max
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger

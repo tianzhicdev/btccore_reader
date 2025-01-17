@@ -1,47 +1,18 @@
-# todo: we need to calc the number of holders that can tolerate 20% downturn - they are believers. - the only metric that matters 
-# holding longer than 1 year and experienced 20% downturn
-
-from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
-import os
-import time
-import random
+from bitcoinrpc.authproxy import JSONRPCException
 import json
-import psycopg2
 from datetime import datetime
-from utils import public_key_to_address
+from utils import get_logger, public_key_to_address
 import logging
 from logging.handlers import RotatingFileHandler
+from utils import get_rpc_connection_user_pw, create_db_connection
 
 # Set up logging
-log_file = '/tmp/bitcoin_reader.log'
-logger = logging.getLogger('bitcoin_tx')
-logger.setLevel(logging.INFO)
-handler = RotatingFileHandler(log_file, maxBytes=1024*1024*1024, backupCount=1) # 1GB max
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
-# Bitcoin data directory (adjust this path for your Mac setup)
-bitcoin_datadir = os.path.expanduser("~/Library/Application Support/Bitcoin/")
+logger = get_logger("bitcoin_core_reader")
 
-# RPC connection details
-rpc_host = "127.0.0.1"
-rpc_port = 3003  # Use 18332 for testnet
+rpc_connection = get_rpc_connection_user_pw()
 
-# Create an RPC connection using cookie authentication
-cookie_file = os.path.join(bitcoin_datadir, ".cookie")
-with open(cookie_file, 'r') as f:
-    auth_cookie = f.read().strip()
-
-rpc_connection = AuthServiceProxy(f"http://{auth_cookie}@{rpc_host}:{rpc_port}")
-
-# Database connection
-db_conn = psycopg2.connect(
-    dbname="bitcoin",
-    user="abc",
-    password="12345",
-    host="localhost"
-)
+db_conn = create_db_connection()
 db_cursor = db_conn.cursor()
 
 def get_vout_address(vout_element):
