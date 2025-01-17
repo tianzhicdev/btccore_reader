@@ -17,7 +17,7 @@ def create_difficulty_table(difficulty_table_name):
             timestamp TIMESTAMP,
             block_number DOUBLE PRECISION,
             value DOUBLE PRECISION,
-            PRIMARY KEY (timestamp)
+            PRIMARY KEY (block_number)
         );
         """
         # Execute the table creation query
@@ -42,7 +42,7 @@ def process_blocks(block_number):
         insert_query = """
         INSERT INTO difficulty (timestamp, block_number, value)
         VALUES (%s, %s, %s)
-        ON CONFLICT (timestamp) DO NOTHING;
+        ON CONFLICT (block_number) DO NOTHING;
         """
         db_cursor.execute(insert_query, (timestamp, block_number, difficulty))
         logger.info(f"Inserted difficulty record for timestamp {timestamp} with block number {block_number} and value {difficulty}")
@@ -69,7 +69,7 @@ if __name__ == '__main__':
         logger.info(f"Starting from block number: {max_block_num}")
         
         # Start from the block before the latest one
-        block_num = max(1, max_block_num - 1)
+        block_num = int(max(1, max_block_num - 1))
         
         while True:
             try:
