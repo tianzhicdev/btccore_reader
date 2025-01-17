@@ -3,6 +3,7 @@ from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor
 app = Flask(__name__)
+
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 def get_db_connection():
@@ -11,7 +12,7 @@ def get_db_connection():
         user="abc",
         password="12345",
         host="localhost",
-        prot="3004"
+        port="3004"
     )
     return conn
 
