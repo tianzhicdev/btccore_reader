@@ -137,7 +137,8 @@ while period_end_date <= datetime.now():
             logger.info(f"Inserted hodler count for date {period_end_date.strftime('%Y-%m-%d')} into table {hodls_table_name}. Number of records: 1")
             conn.commit()
         else:
-            logger.info(f"No update needed for date {period_end_date.strftime('%Y-%m-%d')}.")
+            logger.info(f"Data is not yet available for {period_end_date.strftime('%Y-%m-%d')}.")
+            break
     except Exception as e:
         logger.error(f"Error during iteration for date {period_end_date.strftime('%Y-%m-%d')}: {e}")
         conn.rollback()
