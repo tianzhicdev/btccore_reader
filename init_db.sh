@@ -62,6 +62,11 @@ CREATE TABLE IF NOT EXISTS transactions (
     UNIQUE(timestamp, address, amount, tx, block_number)
 );
 
+CREATE INDEX IF NOT EXISTS idx_amount ON transactions(amount);
+CREATE INDEX IF NOT EXISTS idx_block_number ON transactions(block_number);
+CREATE INDEX IF NOT EXISTS idx_version ON transactions(version);
+
+
 \echo 'Creating hodls table if it does not exist...'
 CREATE TABLE IF NOT EXISTS hodls (
     date DATE PRIMARY KEY,

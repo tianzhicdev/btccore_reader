@@ -8,7 +8,7 @@ import sys
 log_file = '/tmp/bitcoin_hodls.log'
 logger = logging.getLogger('hodls')
 logger.setLevel(logging.INFO)
-handler = RotatingFileHandler(log_file, maxBytes=1024*1024*1024, backupCount=1) # 1GB max
+handler = RotatingFileHandler(log_file, maxBytes=1024*1024*1024, backupCount=1)  # 1GB max
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
@@ -29,9 +29,9 @@ except psycopg2.Error as e:
     logger.error(f"Error connecting to the database: {e}")
     sys.exit(1)
 
-def latest_transaction_date():
+def latest_transaction_date(version):
     try:
-        cursor.execute("SELECT MAX(timestamp) FROM transactions;")
+        cursor.execute("SELECT MAX(timestamp) FROM transactions WHERE version = %s;", (version,))
         latest_transaction_date = cursor.fetchone()[0]
         if latest_transaction_date is None:
             raise ValueError("No transactions found.")
@@ -40,15 +40,15 @@ def latest_transaction_date():
             month=latest_transaction_date.month,
             day=latest_transaction_date.day,
         )
-        logger.info(f"Max date from transactions: {latest_transaction_date.strftime('%Y-%m-%d')}")
+        logger.info(f"Max date from transactions for version {version}: {latest_transaction_date.strftime('%Y-%m-%d')}")
         return latest_transaction_date
     except Exception as e:
         logger.error(f"Error fetching latest transaction date: {e}")
         sys.exit(1)
 
-def latest_timeseries_date(table_name):
+def latest_timeseries_date(table_name, version):
     try:
-        cursor.execute(f"SELECT MAX(date) FROM {table_name};")
+        cursor.execute("SELECT MAX(date) FROM %s WHERE version = %s;", (table_name, version))
         latest_date = cursor.fetchone()[0]
         if latest_date is None:
             return None
@@ -57,7 +57,9 @@ def latest_timeseries_date(table_name):
             month=latest_date.month,
             day=latest_date.day,
         )
+        logger.info(f"Max date from {table_name} for version {version}: {latest_date.strftime('%Y-%m-%d')}")
         return latest_date
+    
     except Exception as e:
         logger.error(f"Error fetching latest timeseries date for {table_name}: {e}")
         sys.exit(1)
@@ -74,11 +76,10 @@ else:
 
 logger.info(f"Running script with version: {version}")
 
-latest_hodl_date = latest_timeseries_date("hodls")
+latest_hodl_date = latest_timeseries_date("hodls", version=version)
 
-logger.info(f"Current max date from hodls: {latest_hodl_date}")
 if latest_hodl_date:
-    start_date = min(latest_hodl_date, latest_transaction_date())
+    start_date = min(latest_hodl_date, latest_transaction_date(version=version))
 else:
     start_date = datetime(2010, 1, 8)
 logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
@@ -86,7 +87,7 @@ logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
 # Iterate over each week from the start date to the current date
 while start_date <= datetime.now():
     try:
-        if start_date < (latest_transaction_date() - timedelta(days=1)):
+        if start_date < (latest_transaction_date(version=version) - timedelta(days=1)):
             query = """
             WITH hodler_count AS (
                 SELECT COUNT(DISTINCT address) AS count FROM (
