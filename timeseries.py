@@ -111,12 +111,14 @@ else:
 
 period_end_date = period_end_date + timedelta(days=7)
 
-logger.info(f"Start date for iteration: {period_end_date.strftime('%Y-%m-%d')}")
+logger.info(f"7-day period ending on: {period_end_date.strftime('%Y-%m-%d')}")
 
 # Iterate over each week from the start date to the current date
 while period_end_date <= datetime.now():
     try:
         if period_end_date < (current_latest_transaction_date - timedelta(days=1)):
+
+            logger.info(f"Processing data for the week ending on: {period_end_date.strftime('%Y-%m-%d')}")
             query = f"""
             WITH hodler_count AS (
                 SELECT COUNT(DISTINCT address) AS count FROM (
@@ -134,6 +136,8 @@ while period_end_date <= datetime.now():
             cursor.execute(query, (period_end_date, BALANCE, period_end_date - timedelta(days=DURATION), period_end_date))
             logger.info(f"Inserted hodler count for date {period_end_date.strftime('%Y-%m-%d')} into table {hodls_table_name}. Number of records: 1")
             conn.commit()
+        else:
+            logger.info(f"No update needed for date {period_end_date.strftime('%Y-%m-%d')}.")
     except Exception as e:
         logger.error(f"Error during iteration for date {period_end_date.strftime('%Y-%m-%d')}: {e}")
         conn.rollback()
