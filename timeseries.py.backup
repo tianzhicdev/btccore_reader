@@ -29,10 +29,9 @@ except psycopg2.Error as e:
     logger.error(f"Error connecting to the database: {e}")
     sys.exit(1)
 
-def latest_transaction_date(transactions_table_name):
+def latest_transaction_date(version):
     try:
-        query = f"SELECT MAX(timestamp) FROM {transactions_table_name};"
-        cursor.execute(query)
+        cursor.execute("SELECT MAX(timestamp) FROM transactions WHERE version = %s;", (version,))
         latest_transaction_date = cursor.fetchone()[0]
         if latest_transaction_date is None:
             return None
@@ -41,16 +40,16 @@ def latest_transaction_date(transactions_table_name):
             month=latest_transaction_date.month,
             day=latest_transaction_date.day,
         )
-        logger.info(f"Max date from {transactions_table_name}: {latest_transaction_date.strftime('%Y-%m-%d')}")
+        logger.info(f"Max date from transactions for version {version}: {latest_transaction_date.strftime('%Y-%m-%d')}")
         return latest_transaction_date
     except Exception as e:
-        logger.error(f"Error fetching latest transaction date from {transactions_table_name}: {e}")
+        logger.error(f"Error fetching latest transaction date: {e}")
         sys.exit(1)
 
-def latest_timeseries_date(hodls_table_name):
+def latest_timeseries_date(table_name, version):
     try:
-        query = f"SELECT MAX(date) FROM {hodls_table_name};"
-        cursor.execute(query)
+        query = f"SELECT MAX(date) FROM {table_name} WHERE version = %s;"
+        cursor.execute(query, (version,))
         latest_date = cursor.fetchone()[0]
         if latest_date is None:
             return None
@@ -59,51 +58,34 @@ def latest_timeseries_date(hodls_table_name):
             month=latest_date.month,
             day=latest_date.day,
         )
-        logger.info(f"Max date from {hodls_table_name}: {latest_date.strftime('%Y-%m-%d')}")
+        logger.info(f"Max date from {table_name} for version {version}: {latest_date.strftime('%Y-%m-%d')}")
         return latest_date
     
     except Exception as e:
-        logger.error(f"Error fetching latest timeseries date for {hodls_table_name}: {e}")
+        logger.error(f"Error fetching latest timeseries date for {table_name}: {e}")
         sys.exit(1)
 
-
-def create_hodls_table(hodls_table_name):
+# Check if version parameter is provided
+if len(sys.argv) > 1:
     try:
-        cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {hodls_table_name} (
-            date DATE PRIMARY KEY,
-            hodls INTEGER
-        );
-        """)
-        conn.commit()
-        logger.info(f"Table {hodls_table_name} checked/created successfully.")
-    except Exception as e:
-        logger.error(f"Error creating table {hodls_table_name}: {e}")
+        version = int(sys.argv[1])
+    except ValueError:
+        logger.error("Invalid version parameter. Must be an integer.")
         sys.exit(1)
-
-
-# Check if table names are provided
-if len(sys.argv) > 2:
-    transactions_table_name = sys.argv[1]
-    hodls_table_name = sys.argv[2]
 else:
-    logger.error("Both transactions_table_name and hodls_table_name must be provided as parameters.")
-    sys.exit(1)
+    version = 1
 
+logger.info(f"Running script with version: {version}")
 
-create_hodls_table(hodls_table_name)
-
-logger.info(f"Running script with transactions_table_name: {transactions_table_name} and hodls_table_name: {hodls_table_name}")
-
-current_latest_transaction_date = latest_transaction_date(transactions_table_name)
-latest_hodl_date = latest_timeseries_date(hodls_table_name)
+current_latest_transaction_date = latest_transaction_date(version=version)
+latest_hodl_date = latest_timeseries_date("hodls", version=version)
 
 if not current_latest_transaction_date:
-    logger.info("No transactions found, exiting")
+    logger.info("No transactions found for the specified version, exisiting")
     sys.exit(0)
     
 
-if latest_hodl_date:
+if latest_hodl_date and current_latest_transaction_date:
     start_date = min(latest_hodl_date, current_latest_transaction_date)
 else:
     start_date = datetime(2010, 1, 8)
@@ -112,22 +94,22 @@ logger.info(f"Start date for iteration: {start_date.strftime('%Y-%m-%d')}")
 # Iterate over each week from the start date to the current date
 while start_date <= datetime.now():
     try:
-        if start_date < (latest_transaction_date(transactions_table_name) - timedelta(days=1)):
-            query = f"""
+        if start_date < (latest_transaction_date(version=version) - timedelta(days=1)):
+            query = """
             WITH hodler_count AS (
                 SELECT COUNT(DISTINCT address) AS count FROM (
                     SELECT address
-                    FROM {transactions_table_name} 
+                    FROM transactions 
                     WHERE timestamp < %s
                     GROUP BY address
                     HAVING SUM(amount) > %s AND MIN(timestamp) < %s
                 ) AS HODLER_ADDRESS
             )
-            INSERT INTO {hodls_table_name} (date, hodls)
-            VALUES (%s, (SELECT count FROM hodler_count))
+            INSERT INTO hodls (date, hodls, version)
+            VALUES (%s, (SELECT count FROM hodler_count), %s)
             ON CONFLICT (date) DO UPDATE SET hodls = EXCLUDED.hodls;
             """
-            cursor.execute(query, (start_date, BALANCE, start_date - timedelta(days=DURATION), start_date))
+            cursor.execute(query, (start_date, BALANCE, start_date - timedelta(days=DURATION), start_date, version))
             conn.commit()
     except Exception as e:
         logger.error(f"Error during iteration for date {start_date.strftime('%Y-%m-%d')}: {e}")

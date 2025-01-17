@@ -9,12 +9,15 @@ if [ "$1" != "server" ] && [ "$1" != "local" ]; then
 fi
 
 if [ -z "$2" ]; then
-    version=1
-elif ! [[ "$2" =~ ^[0-9]+$ ]]; then
-    echo "Error: Version must be a positive integer."
-    exit 1
+    transactions_table_name="transactions"
 else
-    version="$2"
+    transactions_table_name="$2"
+fi
+
+if [ -z "$3" ]; then
+    hodls_table_name="hodls"
+else
+    hodls_table_name="$3"
 fi
 
 # Define the project directory based on the environment parameter
@@ -36,7 +39,7 @@ source "$PROJECT_DIR/venv/bin/activate"
 pip install -r "$PROJECT_DIR/requirements.txt"
 
 # Run main script
-python "$PROJECT_DIR/timeseries.py" "$version"
+python "$PROJECT_DIR/timeseries.py" "$transactions_table_name" "$hodls_table_name"
 
 # Deactivate virtual environment
 deactivate
