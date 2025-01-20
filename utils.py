@@ -52,7 +52,7 @@ def create_db_connection():
     )
 
 def get_rpc_connection_user_pw():
-    rpc_host = "marcus-mini.is-very-nice.org"
+    rpc_host = "localhost"
     rpc_port = 3003 
     return AuthServiceProxy(f"http://bitcoinrpc:12345@{rpc_host}:{rpc_port}")
 
