@@ -17,5 +17,7 @@
     <string>/Users/tianzhichen/logs/bitcoind_std.log</string>
     <key>StandardErrorPath</key>
     <string>/Users/tianzhichen/logs/bitcoind_std.log</string>
+    <key>UserName</key>
+    <string>tianzhichen</string>
 </dict>
 </plist>
