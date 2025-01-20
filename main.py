@@ -121,8 +121,8 @@ if __name__ == '__main__':
     try:
         db_cursor.execute("SELECT COALESCE(MAX(block_number), 0) FROM transactions")
         max_block_num = db_cursor.fetchone()[0]
-        logger.info(f"Starting from block number: {max_block_num}")
         block_num = max(1, max_block_num - 1)
+        logger.info(f"Starting from block number: {block_num}")
         while True:
             if not process_block(block_num):
                 break
