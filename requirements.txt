@@ -1,0 +1,6 @@
+bitcoin_explorer
+python-bitcoinrpc
+psycopg2
+bitcoinrpc~=0.7.0
+flask
+flask_cors
